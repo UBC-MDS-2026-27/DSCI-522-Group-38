@@ -1,0 +1,8 @@
+[project]
+name = "dsci522-team-38"
+version = "0.1.0"
+requires-python = ">=3.8"
+dependencies = [
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+]
