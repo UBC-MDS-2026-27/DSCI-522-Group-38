@@ -1,0 +1,357 @@
+---
+title: "Predicting Vancouver Building Permit Processing Times"
+author:
+  - Patrick Li Pascal
+  - Yuvraj Singh Walia
+  - Louise Izere
+  - Jiyuan Wang
+date: 2026-11-20
+format:
+  html:
+    toc: true
+    code-fold: true
+    embed-resources: true
+execute:
+  echo: true
+  warning: false
+  message: false
+  cache: false
+jupyter: python3
+---
+
+## Summary
+
+We investigate how well publicly recorded characteristics of Vancouver building permits predict the number of calendar days between permit-number creation and first issuance. We compare linear regression with a mean-predicting baseline using a held-out test set and five-fold training cross-validation. Permit characteristics provide useful predictive information, but substantial error remains, especially for unusually long processing times. The model applies only to the issued-permit records analyzed and does not capture the complete experience of unresolved applications. Results below are calculated from the data snapshot used for rendering.
+
+## Introduction
+
+Waiting for a building permit can affect construction scheduling, budgets, and public expectations. This report asks: **How accurately can elapsed issuance time be estimated from permit characteristics that may be available at or near the creation of a permit number?** Our outcome is **permit elapsed days**, the calendar-day difference between permit-number creation and first issuance. The City of Vancouver's Issued Building Permits open dataset provides one record per listed issued permit, along with project value, work type, permit category, property use, geographic area, and issuance-related dates \[1\].
+
+To avoid explicit future information, we exclude **issue year** and issue date from our predictors. We use project value, type of work, permit category, property use, and geographic local area. Whether every retained field is finalized at the moment of application requires separate domain verification; thus the results should not be interpreted as a deployed application-time predictor.
+
+## Methods
+
+### Data source and snapshot
+
+The analysis uses the City of Vancouver's open data \[1\]. The script below downloads the CSV from the public portal **only if the local snapshot is missing**, saving it to `data/raw/`. This preserves reproducibility when the group's checked-in snapshot is present. The online dataset is updated periodically: downloading it afresh may change sample sizes and all reported metrics. Run the analysis from the repository root using the README instructions.
+
+```{python}
+#| label: load-data
+from pathlib import Path
+from urllib.request import urlretrieve
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from IPython.display import display
+from sklearn.model_selection import train_test_split, cross_validate
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler, FunctionTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.dummy import DummyRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+# Quarto's working directory is normally the directory of this .qmd.
+ROOT = Path.cwd().resolve()
+if ROOT.name == 'analysis':
+    ROOT = ROOT.parent
+raw_path = ROOT / 'data' / 'raw' / 'raw_data.csv'
+processed_path = ROOT / 'data' / 'processed' / 'model_input.csv'
+raw_path.parent.mkdir(parents=True, exist_ok=True)
+processed_path.parent.mkdir(parents=True, exist_ok=True)
+
+if not raw_path.exists():
+    DATA_URL = (
+        "https://opendata.vancouver.ca/api/explore/v2.1/catalog/"
+        "datasets/issued-building-permits/exports/csv"
+        "?lang=en&timezone=America%2FVancouver"
+    )
+
+    print("Downloading Vancouver building permit data...")
+    urlretrieve(DATA_URL, raw_path)
+
+raw = pd.read_csv(raw_path, sep=";")
+
+# Standardize column names from the Vancouver Open Data API.
+column_mapping = {
+    "projectvalue": "ProjectValue",
+    "typeofwork": "TypeOfWork",
+    "permitcategory": "PermitCategory",
+    "propertyuse": "PropertyUse",
+    "geolocalarea": "GeoLocalArea",
+    "permitelapseddays": "PermitElapsedDays",
+}
+
+raw = raw.rename(columns=column_mapping)
+
+print(
+    f"Raw dataset: {len(raw):,} records, "
+    f"{raw.shape[1]} columns"
+)
+```
+
+### Data preparation and train/test separation
+
+We select the response and five predictors, leaving identifier fields and post-issuance variables out of the model. We retain rows with a nonmissing, nonnegative response and nonnegative project value. Since the supplied snapshot has no invalid values in these columns, this does not discard its records. The selected, *unencoded* data is saved to `data/processed/`. Crucially, no category-frequency estimates, imputation statistics, scaling parameters, or exploratory plots are computed before the split. The 80/20 split uses a fixed random seed, followed by five-fold cross-validation **only on training data** \[2\].
+
+```{python}
+#| label: prepare-split
+features = ['ProjectValue', 'TypeOfWork', 'PermitCategory', 'PropertyUse', 'GeoLocalArea']
+target = 'PermitElapsedDays'
+selected = raw[features + [target]].copy()
+selected = selected.loc[selected[target].notna() & selected['ProjectValue'].notna()]
+selected = selected.loc[(selected[target] >= 0) & (selected['ProjectValue'] >= 0)]
+selected.to_csv(processed_path, index=False)
+
+X, y = selected[features], selected[target]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+train_eda = X_train.copy()
+train_eda[target] = y_train
+print(f'Training observations: {len(X_train):,}; test observations: {len(X_test):,}')
+```
+
+### Exploratory data analysis (training data only)
+
+We examine the distribution of elapsed time, differences among work types, and the relationship between project value and elapsed time. The scatterplot displays a fixed random sample to reduce overplotting. EDA is deliberately confined to the training partition.
+
+```{python}
+#| label: tbl-duration-summary
+#| tbl-cap: "Summary of permit processing times in the training data (days)."
+desc = train_eda[target].describe(percentiles=[.5, .9, .95]).loc[['count','mean','50%','90%','95%','max']]
+display(desc.rename({'50%':'median','90%':'90th percentile','95%':'95th percentile'}).to_frame('Value').round(2))
+```
+
+```{python}
+
+#| label: fig-duration-hist
+#| fig-cap: "Distribution of building permit processing times in the training dataset. The left panel shows the full distribution, while the right panel shows durations between 0 and 500 days. Dashed lines indicate the mean and median."
+#| fig-width: 13
+#| fig-height: 5
+
+fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+
+processing_days = train_eda[target]
+
+axes[0].hist(
+    processing_days,
+    bins=60,
+    color="steelblue",
+    edgecolor="white"
+)
+
+axes[0].set(
+    title="Full Distribution",
+    xlabel="Processing Time (Days)",
+    ylabel="Number of Permits"
+)
+
+axes[1].hist(
+    processing_days,
+    bins=60,
+    range=(0, 500),
+    color="steelblue",
+    edgecolor="white"
+)
+
+axes[1].set(
+    title="Processing Times: 0–500 Days",
+    xlabel="Processing Time (Days)",
+    ylabel="Number of Permits"
+)
+
+for ax in axes:
+    ax.axvline(
+        processing_days.median(),
+        color="darkorange",
+        linestyle="--",
+        linewidth=2,
+        label="Median"
+    )
+    ax.axvline(
+        processing_days.mean(),
+        color="darkred",
+        linestyle="--",
+        linewidth=2,
+        label="Mean"
+    )
+    ax.legend()
+
+fig.suptitle(
+    "Distribution of Building Permit Processing Times"
+)
+
+plt.tight_layout()
+plt.show()
+
+```
+
+The mean and median reveal whether unusually long issuance times pull the distribution to the right. These cases are kept in the model rather than being removed solely for being unusual.
+
+```{python}
+#| label: fig-worktype-box
+#| fig-cap: "Permit processing times by type of work for training observations. Individual outlier markers are hidden for clarity, not discarded."
+#| fig-width: 11
+#| fig-height: 6
+order = train_eda.groupby('TypeOfWork')[target].median().sort_values().index
+values = [train_eda.loc[train_eda['TypeOfWork'].eq(cat), target] for cat in order]
+fig, ax = plt.subplots()
+ax.boxplot(values, vert=False, tick_labels=order, showfliers=False, patch_artist=True,
+           boxprops={'facecolor':'lightblue'})
+ax.set(xlabel='Permit processing time (days)', ylabel='Type of work', title='Processing time by type of work')
+plt.tight_layout()
+plt.show()
+```
+
+Differences among groups suggest that type of work may help explain variability; they should not be interpreted causally.
+
+```{python}
+#| label: fig-value-scatter
+#| fig-cap: "Project value versus elapsed processing time for a random sample of up to 5,000 training permits. Horizontal coordinate uses log(1 + project value)."
+#| fig-width: 9
+#| fig-height: 5
+sample = train_eda.sample(n=min(5000,len(train_eda)), random_state=42)
+fig, ax = plt.subplots()
+ax.scatter(np.log1p(sample['ProjectValue']), sample[target], alpha=.20, s=12, color='steelblue')
+ax.set(xlabel='log(1 + project value)', ylabel='Permit processing time (days)',
+       title='Project value and processing time')
+plt.tight_layout()
+plt.show()
+print('Spearman rank correlation (training):',
+      round(train_eda[['ProjectValue',target]].corr(method='spearman').iloc[0,1], 3))
+```
+
+### Models and evaluation criteria
+
+The baseline is a dummy regressor that always predicts the training-fold mean. We compare it with ordinary least-squares linear regression \[3\]. Numeric project values receive median imputation, log(1+x) transformation, and standardization. Categorical variables receive a constant missing-value imputation and one-hot encoding; categories beyond a maximum of 15 per feature are grouped into an infrequent category **using only the fitting fold**. The pipeline is fitted from scratch within each cross-validation fold, avoiding information leakage \[2\].
+
+We use **mean absolute error (MAE)** for average absolute error in days, **root mean squared error (RMSE)** to emphasize very large errors, and **R²** to compare explained variation with a constant baseline \[4\]. Lower MAE and RMSE are better; higher R² is better.
+
+```{python}
+#| label: model-cv
+numeric_pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='median')),
+    ('log', FunctionTransformer(np.log1p, feature_names_out='one-to-one')),
+    ('scale', StandardScaler())
+])
+categorical_pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='constant', fill_value='Unknown')),
+    ('onehot', OneHotEncoder(handle_unknown='infrequent_if_exist', max_categories=15))
+])
+preprocessor = ColumnTransformer([
+    ('numeric', numeric_pipeline, ['ProjectValue']),
+    ('categorical', categorical_pipeline, ['TypeOfWork','PermitCategory','PropertyUse','GeoLocalArea'])
+])
+models = {
+    'Baseline': DummyRegressor(strategy='mean'),
+    'Linear regression': Pipeline([('preprocessor', preprocessor), ('model', LinearRegression())])
+}
+scoring = {'MAE':'neg_mean_absolute_error','RMSE':'neg_root_mean_squared_error','R2':'r2'}
+cv_rows = []
+for name, model in models.items():
+    scores = cross_validate(model, X_train, y_train, cv=5, scoring=scoring)
+    cv_rows.append({'Model':name,
+                    'CV MAE (days)':-scores['test_MAE'].mean(),
+                    'CV RMSE (days)':-scores['test_RMSE'].mean(),
+                    'CV R²': scores['test_R2'].mean()})
+cv_results = pd.DataFrame(cv_rows)
+```
+
+## Results
+
+```{python}
+#| label: tbl-cv
+#| tbl-cap: "Five-fold cross-validation results calculated using training data only."
+display(cv_results.round(3).set_index('Model'))
+```
+
+After selecting the pre-specified linear regression for comparison with the baseline, we fit each model on the full training partition and assess it **once** on the held-out test observations. These test outcomes are descriptive final evaluation, not inputs for further model tuning.
+
+```{python}
+#| label: tbl-test
+#| tbl-cap: "Final performance on the held-out test set. MAE and RMSE are in days."
+test_rows = []
+predictions = {}
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    yhat = model.predict(X_test)
+    predictions[name] = yhat
+    test_rows.append({'Model':name,
+                      'Test MAE (days)':mean_absolute_error(y_test,yhat),
+                      'Test RMSE (days)':np.sqrt(mean_squared_error(y_test,yhat)),
+                      'Test R²':r2_score(y_test,yhat)})
+test_results = pd.DataFrame(test_rows)
+display(test_results.round(3).set_index('Model'))
+```
+
+Table 3 shows that the linear regression model achieved a test-set MAE of 70.76 days, RMSE of 120.75 days, and R² of 0.324. Compared with the dummy baseline, MAE decreased by approximately 31.0% and RMSE by 17.8%. These improvements suggest that recorded permit characteristics contain useful predictive information, although substantial uncertainty remains when predicting individual processing times.
+
+The following residual diagnostics make the limitations of point prediction visible. A residual is *actual days minus predicted days*: positive values indicate underprediction, and negative values indicate overprediction.
+
+```{python}
+#| label: fig-residuals
+#| fig-cap: "Residuals versus fitted processing times for the held-out test set; the dashed line marks zero error."
+#| fig-width: 9
+#| fig-height: 5
+pred = predictions['Linear regression']
+residuals = np.asarray(y_test) - pred
+fig, ax = plt.subplots()
+ax.scatter(pred, residuals, s=12, alpha=.2, color='steelblue')
+ax.axhline(0, ls='--', color='darkred', lw=2)
+ax.set(xlabel='Predicted processing time (days)', ylabel='Residual: actual − predicted (days)',
+       title='Residuals versus predicted processing time')
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: fig-actual-pred
+#| fig-cap: "Actual versus predicted elapsed days for held-out test records, with the dashed diagonal indicating perfect prediction."
+#| fig-width: 9
+#| fig-height: 6
+fig, ax = plt.subplots()
+ax.scatter(y_test, pred, s=12, alpha=.2, color='steelblue')
+limits = [min(np.min(y_test), np.min(pred)), max(np.max(y_test), np.max(pred))]
+ax.plot(limits, limits, ls='--', color='darkred', lw=2, label='Perfect prediction')
+ax.set(xlabel='Actual processing time (days)', ylabel='Predicted processing time (days)',
+       title='Actual versus predicted processing time')
+ax.legend()
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: tbl-diagnostics
+#| tbl-cap: "Summary of held-out test prediction diagnostics."
+summary = pd.Series({
+    'Test observations': len(y_test),
+    'Underpredicted observations': int((residuals>0).sum()),
+    'Overpredicted observations': int((residuals<0).sum()),
+    'Median absolute error (days)': float(np.median(np.abs(residuals))),
+    'Median residual (days)': float(np.median(residuals)),
+    'Mean residual (days)': float(np.mean(residuals)),
+    'Negative predictions': int((pred < 0).sum()),
+    'Minimum predicted time (days)': float(np.min(pred)),
+    'Maximum predicted time (days)': float(np.max(pred)),
+})
+display(summary.to_frame('Value').round(2))
+```
+
+The prediction diagnostics in Table 4 show that the linear regression model overpredicted processing times for 6,887 observations (65.3%) and underpredicted them for 3,658 observations (34.7%). The median absolute error was 41.97 days, compared with a mean absolute error of 70.76 days, indicating that larger prediction errors increased the average absolute error. The median residual was −19.60 days, whereas the mean residual was approximately −0.84 days, suggesting an asymmetric error distribution. Additionally, the model generated four negative processing-time predictions, highlighting a limitation of unconstrained linear regression.
+
+## Discussion
+
+The analysis suggests that basic recorded permit attributes can provide useful, but incomplete, information about elapsed issuance time. The work-type comparisons in Figure 2 and the association between project value and duration in Figure 3 help motivate this model; neither establishes causal effects. Figures 4 and 5 show that the model compresses very long observed durations into a narrower range of predictions, consistent with underestimating exceptional delays.
+
+This study has important limitations. First, the source includes permits that **were issued**, rather than a representative sample of all submitted or pending permit requests; outcomes for unresolved applications are not represented. Second, not all fields can be verified as recorded at application time. Third, random splitting tests predictions for similarly sampled historical records, not necessarily generalization to future years or changing permitting procedures. Fourth, the model excludes potentially relevant factors such as application completeness, review complexity and office workload. Future work could examine application-time feature availability, out-of-time validation and alternative regression methods within a new training/validation design. We do not use these final test results for further model selection.
+
+## References
+
+1.  City of Vancouver. *Issued building permits*. City of Vancouver Open Data Portal. https://opendata.vancouver.ca/explore/dataset/issued-building-permits/ (dataset and data dictionary).
+2.  scikit-learn developers. *Common pitfalls and recommended practices*. https://scikit-learn.org/stable/common_pitfalls.html (data leakage and pipelines).
+3.  scikit-learn developers. *LinearRegression*. https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html (regression model).
+4.  scikit-learn developers. *Regression metrics*. https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics (MAE, RMSE, R²).
+
+## Reproducibility and AI-use note
+
+The project uses a Python environment defined in `pyproject.toml` and `uv.lock`. Model and EDA code should be reviewed and run by the authors. Generative AI was used for assistance reviewing workflow design, debugging, and drafting analysis text; authors must verify numerical claims, citations, source data and code, and record accurate example prompts in the project README.
