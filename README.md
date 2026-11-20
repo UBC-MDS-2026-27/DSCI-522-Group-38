@@ -24,7 +24,7 @@ On the analyzed snapshot, the linear regression model achieved **test MAE of 71.
 
 ### Requirements
 
-Install [uv](https://docs.astral.sh/uv/) and [Quarto](https://quarto.org/docs/get-started/). These instructions were developed on Windows using **Python 3.14.7** and **Quarto 1.10.18**. Other platforms have not yet been independently verified.
+Install [uv](https://docs.astral.sh/uv/) and [Quarto](https://quarto.org/docs/get-started/). These instructions were developed on Windows and Mac using **Python 3.14.7** and **Quarto 1.10.18**.
 
 ### 1. Clone the repository
 
