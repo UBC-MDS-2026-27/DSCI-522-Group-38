@@ -347,10 +347,19 @@ This study has important limitations. First, the source includes permits that **
 
 ## References
 
-1.  City of Vancouver. *Issued building permits*. City of Vancouver Open Data Portal. https://opendata.vancouver.ca/explore/dataset/issued-building-permits/ (dataset and data dictionary).
-2.  scikit-learn developers. *Common pitfalls and recommended practices*. https://scikit-learn.org/stable/common_pitfalls.html (data leakage and pipelines).
-3.  scikit-learn developers. *LinearRegression*. https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html (regression model).
-4.  scikit-learn developers. *Regression metrics*. https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics (MAE, RMSE, R²).
+1.  City of Vancouver. *Issued building permits*. City of Vancouver Open Data Portal. [Dataset and data dictionary](https://opendata.vancouver.ca/explore/dataset/issued-building-permits/).
+
+2.  scikit-learn developers. *Common pitfalls and recommended practices*. [Documentation](https://scikit-learn.org/stable/common_pitfalls.html).
+
+3.  scikit-learn developers. *LinearRegression*. [Documentation](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html).
+
+4.  scikit-learn developers. *Regression metrics*. [Documentation](https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics).
+
+5.  scikit-learn developers. *OneHotEncoder*. [Documentation](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.OneHotEncoder.html).
+
+6.  scikit-learn developers. *DummyRegressor*. [Documentation](https://scikit-learn.org/stable/modules/generated/sklearn.dummy.DummyRegressor.html).
+
+7.  MondayPermits. *Vancouver building permits issued this week*. [Website](https://mondaypermits.ca/vancouver-building-permits/).
 
 ## Reproducibility and AI-use note
 
