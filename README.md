@@ -14,7 +14,7 @@ On the analyzed snapshot, the linear regression model achieved **test MAE of 71.
 ## Report and repository structure
 
 - **Source report:** [`analysis/permit-processing-time-prediction.qmd`](analysis/permit-processing-time-prediction.qmd)
-- **Rendered report:** [`analysis/permit-processing-time-prediction.html`](analysis/permit-processing-time-prediction.html) (download or open in a browser)
+- **Rendered report:** [`analysis/permit-processing-time-prediction.html`](https://ubc-mds-2026-27.github.io/DSCI-522-Group-38/analysis/permit-processing-time-prediction.html) (open in a browser)
 - **Raw data snapshot:** `data/raw/raw_data.csv`
 - **Selected modeling data:** `data/processed/model_input.csv` (five predictors and `PermitElapsedDays`)
 - **Environment definition:** `pyproject.toml`, `uv.lock`, `.python-version`
@@ -50,7 +50,7 @@ export QUARTO_PYTHON="$(pwd)/.venv/Scripts/python.exe"
 quarto render analysis/permit-processing-time-prediction.qmd --to html
 ```
 
-**macOS / Linux (not yet verified by the team):**
+**macOS / Linux:**
 
 ```bash
 export QUARTO_PYTHON="$(pwd)/.venv/bin/python"
@@ -77,4 +77,7 @@ Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE
 
 ## Generative AI use
 
-Generative AI was used as an aid for reviewing analysis design, troubleshooting Python/Quarto environment issues, checking interpretations, and drafting or revising explanatory text. Team members are responsible for verifying all code, results, references, and final wording. **Before submission, the team should add or confirm representative actual prompts here if required by the course policy, rather than using invented examples.**
+Generative AI was used as an aid for reviewing analysis design, troubleshooting Python/Quarto environment issues, checking interpretations, and drafting or revising explanatory text. Team members are responsible for verifying all code, results, references, and final wording. We used chatGPT.
+Sample prompts:
+- Refine this paragraph and make it more coherent.
+- Debug this line.
