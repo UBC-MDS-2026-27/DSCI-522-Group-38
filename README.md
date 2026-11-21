@@ -11,6 +11,8 @@ We analyze the [City of Vancouver's Issued Building Permits dataset](https://ope
 
 On the analyzed snapshot, the linear regression model achieved **test MAE of 71.44 days**, **RMSE of 123.35 days**, and **R² of 0.327**. Compared with the dummy baseline, this represents approximately **30.9% lower MAE** and **18.0% lower RMSE**. Error remains substantial for unusually long processing times. The dataset includes *issued* permits, not unresolved applications, and some predictors may not be reliably available at application time. The model is therefore an exploratory analysis, **not a production-ready permit wait-time estimator**.
 
+**Reproducibility note:** Reported results use the saved CSV included in this repository. Use it to reproduce our results; downloading newer City of Vancouver data may produce different results.
+
 ## Report and repository structure
 
 - **Source report:** [`analysis/permit-processing-time-prediction.qmd`](analysis/permit-processing-time-prediction.qmd)
