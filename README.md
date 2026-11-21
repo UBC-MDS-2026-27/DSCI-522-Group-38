@@ -75,9 +75,34 @@ See [`LICENSE.md`](LICENSE.md) for the applicable licenses: **MIT** for reposito
 
 Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) before proposing changes. Team members should use reviewed pull requests for contributions.
 
-## Generative AI use
+## Generative AI Use
 
-Generative AI was used as an aid for reviewing analysis design, troubleshooting Python/Quarto environment issues, checking interpretations, and drafting or revising explanatory text. Team members are responsible for verifying all code, results, references, and final wording. We used chatGPT.
-Sample prompts:
-- Refine this paragraph and make it more coherent.
-- Debug this line.
+Generative AI tools, primarily **OpenAI's ChatGPT**, were used to assist with the development, analysis, and documentation of this project. ChatGPT served as a supporting tool for brainstorming, troubleshooting technical issues, reviewing analytical approaches, interpreting model results, and improving written explanations.
+
+Specifically, ChatGPT was used for the following purposes:
+
+- **Analysis design:** Discussing the regression workflow, selection of predictor variables, comparison with a dummy baseline, and strategies for preventing data leakage.
+- **Code development and debugging:** Assisting with Python code, scikit-learn preprocessing pipelines, cross-validation, model evaluation, and troubleshooting programming errors.
+- **Exploratory data analysis:** Providing suggestions for data visualization, identifying potential data quality issues, and improving explanations of observed patterns.
+- **Model evaluation and interpretation:** Clarifying evaluation metrics such as MAE, RMSE, and R², reviewing model performance, and discussing limitations related to prediction errors and data availability.
+- **Reproducibility and environment setup:** Troubleshooting Quarto rendering, Python environment configuration, dependency management with `uv`, and issues involving dataset downloading and processing.
+- **Documentation and writing:** Improving the clarity, organization, and consistency of the Quarto report, README, and other project documentation.
+
+### Examples of Prompts Used
+
+The following are representative examples of prompts used during project development:
+
+1. "Help me design a regression workflow for predicting Vancouver building permit processing times."
+2. "How can I prevent data leakage when using scikit-learn pipelines for preprocessing and cross-validation?"
+3. "Explain the differences between MAE, RMSE, and R² and how to interpret these metrics."
+4. "Help me debug this Python code and explain why the error occurs."
+5. "Why is Quarto unable to detect my Python environment when rendering the report?"
+6. "How can I make my analysis reproducible using `uv` and a locked Python environment?"
+7. "Review this paragraph and improve its clarity and coherence without changing its technical meaning."
+8. "Review my README and suggest improvements to the project setup and reproducibility instructions."
+
+### Verification and Responsibility
+
+All AI-generated suggestions were subject to review by project team members before inclusion in the final submission. The team remains responsible for verifying the correctness of the code, analytical results, interpretations, references, and documentation.
+
+ChatGPT was used as an **assistance tool rather than an authoritative research source**. All final methodological decisions, implementation choices, conclusions, and submitted materials remain the responsibility of the project team.
