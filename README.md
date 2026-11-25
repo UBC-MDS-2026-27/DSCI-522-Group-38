@@ -16,7 +16,7 @@ On the analyzed snapshot, the linear regression model achieved **test MAE of 71.
 ## Report and repository structure
 
 - **Source report:** [`analysis/permit-processing-time-prediction.qmd`](analysis/permit-processing-time-prediction.qmd)
-- **Rendered report:** [`analysis/permit-processing-time-prediction.html`](https://ubc-mds-2026-27.github.io/DSCI-522-Group-38/analysis/permit-processing-time-prediction.html)
+- **Rendered report:** [View the report](https://ubc-mds-2026-27.github.io/DSCI-522-Group-38/)
 - **Raw data snapshot:** `data/raw/raw_data.csv`
 - **Selected modeling data:** `data/processed/model_input.csv` (five predictors and `PermitElapsedDays`)
 - **Environment definition:** `pyproject.toml`, `uv.lock`, `.python-version`
