@@ -55,7 +55,7 @@ This downloads the image for your computer's architecture. The Compose file spec
 From the repository root, run the following command to execute the Quarto report inside the container:
 
 ```bash
-docker compose run --rm analysis-env uv run quarto render analysis/permit-processing-time-prediction.qmd
+docker compose run --rm analysis-env uv run --locked quarto render analysis/permit-processing-time-prediction.qmd --to html
 ```
 
 The command runs the report's Python code, including data preparation, exploratory analysis, model evaluation, and creation of figures and tables. It writes the rendered report to `analysis/permit-processing-time-prediction.html` and refreshes `data/processed/model_input.csv`. The project files are mounted into the container at `/workspace`, so the output appears in your local repository too.
