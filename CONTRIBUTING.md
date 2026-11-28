@@ -8,7 +8,7 @@ For a substantial change, open a GitHub issue describing the problem or proposed
 
 Small typographical errors should be corrected in the source (`analysis/permit-processing-time-prediction.qmd`) or original documentation, rather than only in the generated HTML.
 
-## Set up the container
+## Set up the Container
 
 We develop inside the same Docker environment used to reproduce the analysis. **First follow the [Usage instructions in the README](README.md#usage)** to install Docker, clone the repository, create an SSH key if necessary, and run `docker compose pull`.
 
