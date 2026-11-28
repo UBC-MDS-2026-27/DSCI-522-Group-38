@@ -21,7 +21,34 @@ Disclose the tool and how it was used in the pull request description. Record pr
 
 Humans must open GitHub issues and pull requests, make final review decisions, and merge changes. AI agents must not perform these actions.
 
-ChatGPT Codex was used to structure CONTRIBUTION.md given the content and sections by a team member.
+ChatGPT Codex was used to structure CONTRIBUTING.md given the content and sections by a team member.
+
+## Update the published report
+
+GitHub Pages displays `docs/index.html`, a copy of our rendered report. Refresh this copy whenever the analysis is re-rendered.
+
+After completing the container setup, run these commands from the repository root on a feature branch, using Git Bash on Windows or a terminal on macOS/Linux, with Docker running:
+
+```bash
+docker compose pull
+docker compose run --rm analysis-env uv run --locked quarto render analysis/permit-processing-time-prediction.qmd --to html
+```
+
+After rendering succeeds, copy the updated report into `docs/`:
+
+```bash
+mkdir -p docs
+cp analysis/permit-processing-time-prediction.html docs/index.html
+touch docs/.nojekyll
+```
+
+Keep `embed-resources: true` enabled in the report’s YAML header so the HTML includes its figures and styling.
+
+Open `docs/index.html` locally and check the text, tables, figures and links. Commit the updated report HTML and publishing files, then open a pull request for teammate review.
+
+GitHub Pages must be configured to deploy from the `main` branch and `/docs` folder. After merging and deployment, check the [published report](https://ubc-mds-2026-27.github.io/DSCI-522-Group-38/) again.
+
+Before creating release `1.0.0`, confirm that the published report matches the version included in the release.
 
 ## Licences and sources
 
